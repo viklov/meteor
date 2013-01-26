@@ -7,12 +7,15 @@
 // Cursor: a specification for a particular subset of documents, w/
 // a defined order, limit, and offset.  creating a Cursor with LocalCollection.find(),
 
-// LiveResultsSet: the return value of a live query.
+LocalCollection = function (name, bus) {
+  var self = this;
 
-LocalCollection = function () {
-  this.docs = {}; // _id -> document (also containing id)
+  self._name = name;  // could be undefined
+  self._bus = bus || new LocalCollection._MessageBus;
 
-  this.next_qid = 1; // live query id generator
+  self.docs = {}; // _id -> document (also containing id)
+
+  self.next_qid = 1; // live query id generator
 
   // qid -> live query object. keys:
   //  ordered: bool. ordered queries have moved callbacks and callbacks
@@ -21,14 +24,27 @@ LocalCollection = function () {
   //  results_snapshot: snapshot of results. null if not paused.
   //  cursor: Cursor object for the query.
   //  selector_f, sort_f, (callbacks): functions
-  this.queries = {};
+  self.queries = {};
 
   // null if not saving originals; a map from id to original document value if
   // saving originals. See comments before saveOriginals().
-  this._savedOriginals = null;
+  self._savedOriginals = null;
 
   // True when observers are paused and we should not send callbacks.
-  this.paused = false;
+  self.paused = false;
+
+  // We assume that LocalCollections have as long a lifetime as the MessageBus
+  // they are connected to, so we don't save the handles here and never call
+  // stop on them.
+  self._listenWithCollection({}, _.bind(self._applyMessage, self));
+  self._bus.onLeaveAllBatches(function () {
+    _.each(self.queries, function(query) {
+      if (query.needsRecompute) {
+        LocalCollection._recomputeResults(query);
+        query.needsRecompute = false;
+      }
+     });
+  });
 };
 
 LocalCollection._applyChanges = function (doc, changeFields) {
@@ -50,11 +66,6 @@ LocalCollection._applyChanges = function (doc, changeFields) {
 // reactive: if given, and false, don't register with Meteor.deps (default
 // is true)
 //
-// XXX possibly should support retrieving a subset of fields? and
-// have it be a hint (ignored on the client, when not copying the
-// doc?)
-//
-// XXX sort does not yet support subkeys ('a.b') .. fix that!
 // XXX add one more sort form: "key"
 // XXX tests
 LocalCollection.prototype.find = function (selector, options) {
@@ -72,7 +83,7 @@ LocalCollection.Cursor = function (collection, selector, options) {
   var self = this;
   if (!options) options = {};
 
-  this.collection = collection;
+  self.collection = collection;
 
   if (LocalCollection._selectorIsId(selector)) {
     // stash for fast path
@@ -86,6 +97,41 @@ LocalCollection.Cursor = function (collection, selector, options) {
   }
   self.skip = options.skip;
   self.limit = options.limit;
+
+  self._fields = options.fields;
+  if (self._fields) {
+    var isInclusion = undefined;
+    var topLevelFields = {};
+    _.each(self._fields, function (include, key) {
+      if (isInclusion === undefined)
+        isInclusion = !!include;
+      else if (isInclusion !== !!include) {
+        throw new Error("Inconsistent field spec " +
+                        JSON.stringify(self._fields));
+      }
+      var dot = key.indexOf('.');
+      if (dot === -1) {
+        topLevelFields[key] = true;
+      } else {
+        // For now, we handle field specifiers that specify non-top-level fields
+        // in an imprecise way: we do all our filtering at the top level, so
+        // "include foo.bar" translates to "include foo", and "exclude foo.bar"
+        // is ignored.
+        // XXX Do more precise handling of multi-level field specifiers.
+        //     IF THIS CODE EVER GETS USED ON THE SERVER, THIS FIX *MUST*
+        //     BE APPLIED OR ELSE IT WILL BE A SECURITY HOLE!
+        if (isInclusion)
+          topLevelFields[key.substr(0, dot)] = true;
+      }
+    });
+    if (isInclusion === undefined)
+      throw new Error("Empty field spec");
+    self._includeField = function (key) {
+      return _.has(topLevelFields, key) ? isInclusion : !isInclusion;
+    };
+  } else {
+    self._includeField = function (key) { return true; };
+  }
 
   // db_objects is a list of the objects that match the cursor. (It's always a
   // list, never an object: LocalCollection.Cursor is always ordered.)
@@ -101,6 +147,12 @@ LocalCollection.Cursor.prototype.rewind = function () {
   var self = this;
   self.db_objects = null;
   self.cursor_pos = 0;
+};
+
+LocalCollection.prototype._listenWithCollection = function (trigger, callback) {
+  var self = this;
+  return self._bus.listen(
+    self._name ? _.extend({collection: self._name}, trigger) : trigger, callback);
 };
 
 LocalCollection.prototype.findOne = function (selector, options) {
@@ -136,7 +188,18 @@ LocalCollection.Cursor.prototype.forEach = function (callback) {
                           moved: true});
 
   while (self.cursor_pos < self.db_objects.length)
-    callback(EJSON.clone(self.db_objects[self.cursor_pos++]));
+    callback(self._copyFields(self.db_objects[self.cursor_pos++]));
+};
+
+// Returns a deep copy of 'doc', including only the fields the user requested.
+LocalCollection.Cursor.prototype._copyFields = function (doc) {
+  var self = this;
+  var output = {};
+  _.each(doc, function (value, key) {
+    if (key === '_id' || self._includeField(key))
+      output[key] = EJSON.clone(value);
+  });
+  return output;
 };
 
 LocalCollection.Cursor.prototype.map = function (callback) {
@@ -206,7 +269,6 @@ _.extend(LocalCollection.Cursor.prototype, {
   observeChanges: function (callbacks) {
     return LocalCollection._observeChanges(this, callbacks);
   },
-
   _observeInternal: function (ordered, options) {
     var self = this;
 
@@ -221,9 +283,10 @@ _.extend(LocalCollection.Cursor.prototype, {
       sort_f: ordered && self.sort_f,
       results_snapshot: null,
       ordered: ordered,
-      cursor: this
+      cursor: this,
+      needsRecompute: false
     };
-    query.results = self._getRawObjects(ordered);
+    query.results = EJSON.clone(self._getRawObjects(ordered));
     if (self.collection.paused)
       query.results_snapshot = (ordered ? [] : {});
 
@@ -356,44 +419,28 @@ LocalCollection.Cursor.prototype._markAsReactive = function (options) {
 // this in our handling of null and $exists)
 LocalCollection.prototype.insert = function (doc) {
   var self = this;
-  doc = EJSON.clone(doc);
 
-  if (!_.has(doc, '_id')) {
+  var message = {msg: 'added', fields: EJSON.clone(doc)};
+  if (_.has(message.fields, '_id')) {
+    message.id = LocalCollection._idStringify(message.fields._id);
+    delete message.fields._id;
+  } else {
     // if you really want to use ObjectIDs, set this global.
     // Meteor.Collection specifies its own ids and does not use this code.
-    doc._id = LocalCollection._useOID ? new LocalCollection._ObjectID()
-                                      : LocalCollection.id();
-  }
-  var id = LocalCollection._idStringify(doc._id);
-
-  if (_.has(self.docs, id))
-    throw new Error("Duplicate id '" + id + "'");
-
-  self._saveOriginal(id, undefined);
-  self.docs[id] = doc;
-
-  var queriesToRecompute = [];
-  // trigger live queries that match
-  for (var qid in self.queries) {
-    var query = self.queries[qid];
-    if (query.selector_f(doc)) {
-      if (query.cursor.skip || query.cursor.limit)
-        queriesToRecompute.push(query);
-      else
-        LocalCollection._insertInResults(query, doc);
-    }
+    message.id = LocalCollection._idStringify(LocalCollection._useOID
+                                              ? new LocalCollection._ObjectID()
+                                              : LocalCollection.id());
   }
 
-  _.each(queriesToRecompute, function (query) {
-    LocalCollection._recomputeResults(query);
-  });
+  if (_.has(self.docs, message.id))
+    throw new Error("Duplicate id '" + message.id + "'");
+
+  self._applyMessages([message]);
 };
 
 LocalCollection.prototype.remove = function (selector) {
   var self = this;
   var remove = [];
-
-  var queriesToRecompute = [];
 
   // Avoid O(n) for "remove a single doc by ID".
   if (LocalCollection._selectorIsId(selector)) {
@@ -410,29 +457,11 @@ LocalCollection.prototype.remove = function (selector) {
     }
   }
 
-  var queryRemove = [];
-  for (var i = 0; i < remove.length; i++) {
-    var removeId = remove[i];
-    var removeDoc = self.docs[removeId];
-    _.each(self.queries, function (query) {
-      if (query.selector_f(removeDoc)) {
-        if (query.cursor.skip || query.cursor.limit)
-          queriesToRecompute.push(query);
-        else
-          queryRemove.push([query, removeDoc]);
-      }
-    });
-    self._saveOriginal(removeId, removeDoc);
-    delete self.docs[removeId];
-  }
-
-  // run live query callbacks _after_ we've removed the documents.
-  for (var i = 0; i < queryRemove.length; i++) {
-    LocalCollection._removeFromResults(queryRemove[i][0], queryRemove[i][1]);
-  }
-  _.each(queriesToRecompute, function (query) {
-    LocalCollection._recomputeResults(query);
+  var messages = _.map(remove, function (id) {
+    return {msg: 'removed', id: id};
   });
+
+  self._applyMessages(messages);
 };
 
 // XXX atomicity: if multi is true, and one modification fails, do
@@ -446,60 +475,112 @@ LocalCollection.prototype.update = function (selector, mod, options) {
 
   var selector_f = LocalCollection._compileSelector(selector);
 
-  // Save the original results of any query that we might need to
-  // _recomputeResults on, because _modifyAndNotify will mutate the objects in
-  // it. (We don't need to save the original results of paused queries because
-  // they already have a results_snapshot and we won't be diffing in
-  // _recomputeResults.)
-  var qidToOriginalResults = {};
-  _.each(self.queries, function (query, qid) {
-    if ((query.cursor.skip || query.cursor.limit) && !query.paused)
-      qidToOriginalResults[qid] = EJSON.clone(query.results);
-  });
-  var recomputeQids = {};
 
+  var messages = [];
   for (var id in self.docs) {
     var doc = self.docs[id];
     if (selector_f(doc)) {
-      // XXX Should we save the original even if mod ends up being a no-op?
-      self._saveOriginal(id, doc);
-      self._modifyAndNotify(doc, mod, recomputeQids);
+      var message = LocalCollection._computeChange(doc, mod);
+      if (message) {
+        messages.push(message);
+      }
+
       if (!options.multi)
         break;
     }
   }
+  self._applyMessages(messages);
+};
 
-  _.each(recomputeQids, function (dummy, qid) {
-    LocalCollection._recomputeResults(self.queries[qid],
-                                      qidToOriginalResults[qid]);
+LocalCollection.prototype._applyMessages = function (messages) {
+  var self = this;
+  if (_.isEmpty(messages))
+    return;
+  var batch = self._bus.startBatch();
+  _.each(messages, function (message) {
+    if (self._name)
+      message.collection = self._name;
+    self._bus.fire(message);
+  });
+  batch.endBatch();
+};
+
+LocalCollection.prototype._applyMessage = function (message) {
+  var self = this;
+  if (message.msg === 'added') {
+    self._applyAdded(message);
+  } else if (message.msg === 'removed') {
+    self._applyRemoved(message);
+  } else if (message.msg === 'changed') {
+    self._applyChanged(message);
+  }
+};
+
+LocalCollection.prototype._applyAdded = function (message) {
+  var self = this;
+
+  if (_.has(self.docs, message.id))
+    throw new Error("Unexpected added for ID " + message.id);
+
+  self._saveOriginal(message.id, undefined);
+  var doc = self.docs[message.id] = _.extend({
+    _id: LocalCollection._idParse(message.id)
+  }, message.fields);
+
+
+
+  // trigger live queries that match
+  for (var qid in self.queries) {
+    var query = self.queries[qid];
+    if (query.selector_f(doc)) {
+      if (query.cursor.skip || query.cursor.limit)
+        query.needsRecompute = true;
+      else
+        LocalCollection._insertInResults(query, doc);
+    }
+  }
+};
+
+LocalCollection.prototype._applyRemoved = function (message) {
+  var self = this;
+
+  if (!_.has(self.docs, message.id))
+    throw new Error("Unexpected removed for ID " + message.id);
+
+  var removeDoc = self.docs[message.id];
+  self._saveOriginal(message.id, removeDoc);
+  delete self.docs[message.id];
+
+
+  // trigger live queries that match
+  _.each(self.queries, function (query) {
+    if (query.selector_f(removeDoc)) {
+      if (query.cursor.skip || query.cursor.limit)
+        query.needsRecompute = true;
+      else
+        LocalCollection._removeFromResults(query, removeDoc);
+    }
   });
 };
 
-LocalCollection.prototype._modifyAndNotify = function (
-    doc, mod, recomputeQids) {
+
+LocalCollection.prototype._applyChanged = function (message) {
   var self = this;
-
-  var matched_before = {};
-  for (var qid in self.queries) {
-    var query = self.queries[qid];
-    if (query.ordered) {
-      matched_before[qid] = query.selector_f(doc);
-    } else {
-      // Because we don't support skip or limit (yet) in unordered queries, we
-      // can just do a direct lookup.
-      matched_before[qid] = _.has(query.results,
-                                  LocalCollection._idStringify(doc._id));
-    }
+  if (!_.has(self.docs, message.id)) {
+    throw new Error("Unexpected changed for ID " + message.id);
   }
+  var doc = self.docs[message.id];
 
-  var old_doc = EJSON.clone(doc);
+  self._saveOriginal(message.id, doc);
+  var oldDoc = EJSON.clone(doc);
 
-  LocalCollection._modify(doc, mod);
+  // the actual mutation
+  LocalCollection._applyChanges(doc, message.fields);
 
-  for (qid in self.queries) {
-    query = self.queries[qid];
-    var before = matched_before[qid];
+  // trigger live queries that match
+  _.each(self.queries, function (query) {
     var after = query.selector_f(doc);
+    var before = query.selector_f(oldDoc);
 
     if (query.cursor.skip || query.cursor.limit) {
       // We need to recompute any query where the doc may have been in the
@@ -510,15 +591,15 @@ LocalCollection.prototype._modifyAndNotify = function (
       // in the output. So it's safe to skip recompute if neither before or
       // after are true.)
       if (before || after)
-	recomputeQids[qid] = true;
+	query.needsRecompute = true;
     } else if (before && !after) {
       LocalCollection._removeFromResults(query, doc);
     } else if (!before && after) {
       LocalCollection._insertInResults(query, doc);
     } else if (before && after) {
-      LocalCollection._updateInResults(query, doc, old_doc);
+      LocalCollection._updateInResults(query, doc, oldDoc);
     }
-  }
+  });
 };
 
 // XXX the sorted-query logic below is laughably inefficient. we'll
@@ -531,15 +612,16 @@ LocalCollection._insertInResults = function (query, doc) {
   if (query.ordered) {
     if (!query.sort_f) {
       query.added(EJSON.clone(doc), query.results.length);
-      query.results.push(doc);
+      query.results.push(EJSON.clone(doc));
     } else {
       var i = LocalCollection._insertInSortedList(
-        query.sort_f, query.results, doc);
+        query.sort_f, query.results, EJSON.clone(doc));
       query.added(EJSON.clone(doc), i);
     }
   } else {
     query.added(EJSON.clone(doc));
-    query.results[LocalCollection._idStringify(doc._id)] = doc;
+    query.results[LocalCollection._idStringify(doc._id)] =
+      EJSON.clone(doc);
   }
 };
 
@@ -561,21 +643,24 @@ LocalCollection._updateInResults = function (query, doc, old_doc) {
 
   if (!query.ordered) {
     query.changed(EJSON.clone(doc), old_doc);
-    query.results[LocalCollection._idStringify(doc._id)] = doc;
+    query.results[LocalCollection._idStringify(doc._id)] =
+      EJSON.clone(doc);
     return;
   }
 
   var orig_idx = LocalCollection._findInOrderedResults(query, doc);
   query.changed(EJSON.clone(doc), orig_idx, old_doc);
 
-  if (!query.sort_f)
+  if (!query.sort_f) {
+    query.results[orig_idx] = EJSON.clone(doc);
     return;
+  }
 
   // just take it out and put it back in again, and see if the index
   // changes
   query.results.splice(orig_idx, 1);
   var new_idx = LocalCollection._insertInSortedList(
-    query.sort_f, query.results, doc);
+    query.sort_f, query.results, EJSON.clone(doc));
   if (orig_idx !== new_idx)
     query.moved(EJSON.clone(doc), orig_idx, new_idx);
 };
@@ -588,10 +673,10 @@ LocalCollection._updateInResults = function (query, doc, old_doc) {
 // old results (and there's no need to pass in oldResults), because these
 // operations don't mutate the documents in the collection. Update needs to pass
 // in an oldResults which was deep-copied before the modifier was applied.
-LocalCollection._recomputeResults = function (query, oldResults) {
-  if (!oldResults)
-    oldResults = query.results;
-  query.results = query.cursor._getRawObjects(query.ordered);
+LocalCollection._recomputeResults = function (query) {
+  var oldResults = query.results;
+  query.results = EJSON.clone(
+    query.cursor._getRawObjects(query.ordered));
 
   if (!query.paused)
     LocalCollection._diffQuery(
@@ -603,7 +688,7 @@ LocalCollection._findInOrderedResults = function (query, doc) {
   if (!query.ordered)
     throw new Error("Can't call _findInOrderedResults on unordered query");
   for (var i = 0; i < query.results.length; i++)
-    if (query.results[i] === doc)
+    if (EJSON.equals(query.results[i]._id, doc._id))
       return i;
   throw Error("object missing from query");
 };
@@ -728,7 +813,7 @@ LocalCollection._idStringify = function (id) {
 
 
 
- LocalCollection._idParse = function (id) {
+LocalCollection._idParse = function (id) {
   if (id === "") {
     return id;
   } else if (id === '-') {

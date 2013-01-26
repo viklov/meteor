@@ -141,6 +141,31 @@ Tinytest.add("minimongo - basics", function (test) {
   test.throws(function () { c.insert({_id: 1, name: "bla"}); });
   test.equal(c.find({_id: 1}).count(), 1);
   test.equal(c.findOne(1).name, "strawberry");
+
+  // Fields filtering.
+  test.equal(c.find({name: {$exists: true}},
+                    {fields: {name: 1}, sort: ['_id']}).fetch(),
+             [{_id: 1, name: "strawberry"},
+              {_id: 2, name: "apple"},
+              {_id: 3, name: "rose"}]);
+  test.equal(c.find({name: {$exists: true}},
+                    {fields: {tags: 0}, sort: ['_id']}).fetch(),
+             [{_id: 1, name: "strawberry"},
+              {_id: 2, name: "apple"},
+              {_id: 3, name: "rose"}]);
+  test.throws(function () {
+    c.find({}, {fields: {name: 1, tags: 0}});
+  });
+
+  // Dotted field filtering. For now, we treat "include foo.bar" as meaning
+  // "include foo", and we ignore "exclude foo.bar". This is basically a bug
+  // though, so if these tests fail because we've improved the behavior of
+  // dotted field filtering, that's OK!
+  c.insert({_id: 42, foo: {bar: 1, baz: 2}, quux: 3});
+  test.equal(c.findOne(42, {fields: {'foo.bar': true}}),
+             {_id: 42, foo: {bar: 1, baz: 2}});
+  test.equal(c.findOne(42, {fields: {'foo.bar': false}}),
+             {_id: 42, foo: {bar: 1, baz: 2}, quux: 3});
 });
 
 Tinytest.add("minimongo - cursors", function (test) {
@@ -631,7 +656,7 @@ Tinytest.add("minimongo - selector_compiler", function (test) {
   match({$or: [{a: {$not: {$mod: [10, 1]}}}, {a: {$mod: [10, 2]}}]}, {a: 2});
   match({$or: [{a: {$not: {$mod: [10, 1]}}}, {a: {$mod: [10, 2]}}]}, {a: 3});
   // this is possibly an open-ended task, so we stop here ...
-  
+
   // $nor
   test.throws(function () {
     match({$nor: []}, {});
@@ -766,17 +791,17 @@ Tinytest.add("minimongo - selector_compiler", function (test) {
   nomatch({$and: [{a: {$nin: [1, 2, 3]}}, {b: {$nin: [4, 5, 6]}}]}, {a: 1, b: 4});
 
   // $and and $lt, $lte, $gt, $gte
-  match({$and: [{a: {$lt: 2}}]}, {a: 1}); 
-  nomatch({$and: [{a: {$lt: 1}}]}, {a: 1}); 
-  match({$and: [{a: {$lte: 1}}]}, {a: 1}); 
-  match({$and: [{a: {$gt: 0}}]}, {a: 1}); 
-  nomatch({$and: [{a: {$gt: 1}}]}, {a: 1}); 
-  match({$and: [{a: {$gte: 1}}]}, {a: 1}); 
-  match({$and: [{a: {$gt: 0}}, {a: {$lt: 2}}]}, {a: 1}); 
-  nomatch({$and: [{a: {$gt: 1}}, {a: {$lt: 2}}]}, {a: 1}); 
-  nomatch({$and: [{a: {$gt: 0}}, {a: {$lt: 1}}]}, {a: 1}); 
-  match({$and: [{a: {$gte: 1}}, {a: {$lte: 1}}]}, {a: 1}); 
-  nomatch({$and: [{a: {$gte: 2}}, {a: {$lte: 0}}]}, {a: 1}); 
+  match({$and: [{a: {$lt: 2}}]}, {a: 1});
+  nomatch({$and: [{a: {$lt: 1}}]}, {a: 1});
+  match({$and: [{a: {$lte: 1}}]}, {a: 1});
+  match({$and: [{a: {$gt: 0}}]}, {a: 1});
+  nomatch({$and: [{a: {$gt: 1}}]}, {a: 1});
+  match({$and: [{a: {$gte: 1}}]}, {a: 1});
+  match({$and: [{a: {$gt: 0}}, {a: {$lt: 2}}]}, {a: 1});
+  nomatch({$and: [{a: {$gt: 1}}, {a: {$lt: 2}}]}, {a: 1});
+  nomatch({$and: [{a: {$gt: 0}}, {a: {$lt: 1}}]}, {a: 1});
+  match({$and: [{a: {$gte: 1}}, {a: {$lte: 1}}]}, {a: 1});
+  nomatch({$and: [{a: {$gte: 2}}, {a: {$lte: 0}}]}, {a: 1});
 
   // $and and $ne
   match({$and: [{a: {$ne: 1}}]}, {});
@@ -920,16 +945,20 @@ Tinytest.add("minimongo - subkey sort", function (test) {
 
 Tinytest.add("minimongo - modify", function (test) {
   var modify = function (doc, mod, result) {
-    var copy = EJSON.clone(doc);
-    LocalCollection._modify(copy, mod);
-    if (!LocalCollection._f._equal(copy, result)) {
+    var message = LocalCollection._computeChange(doc, mod);
+    var actual = EJSON.clone(doc);
+    if (message) {
+      LocalCollection._applyChanges(actual, message.fields);
+    }
+
+    if (!LocalCollection._f._equal(actual, result)) {
       // XXX super janky
       test.fail({type: "minimongo-modifier",
-                 message: "modifier test failure",
+                 message: "computed modifier test failure",
                  input_doc: JSON.stringify(doc),
                  modifier: JSON.stringify(mod),
                  expected: JSON.stringify(result),
-                 actual: JSON.stringify(copy)
+                 actual: JSON.stringify(actual)
                 });
     } else {
       test.ok();
@@ -937,7 +966,7 @@ Tinytest.add("minimongo - modify", function (test) {
   };
   var exception = function (doc, mod) {
     test.throws(function () {
-      LocalCollection._modify(EJSON.clone(doc), mod);
+      LocalCollection._computeChange(doc, mod);
     });
   };
 
