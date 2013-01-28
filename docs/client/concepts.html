@@ -2,10 +2,10 @@
 
 <h1 id="concepts">Concepts</h1>
 
-We've written our fair share of single-page JavaScript applications by hand.
-Writing an entire application in one language (JavaScript) with one
-data format (JSON) is a real joy.  Meteor is everything we wanted
-when writing those apps.
+Мы пишем честное одностраничное веб-приложение на JavaScript.
+Пишем все приложение на одном языке (JavaScript) с одним
+форматом данных (JSON) и это действительно весело.  Meteor все что вам нужно
+когда вы создаете такие приложения.
 
 {{> structure }}
 {{> data }}
@@ -19,22 +19,20 @@ when writing those apps.
 <template name="structure">
 {{#better_markdown}}
 
-<h2 id="structuringyourapp">Structuring your application</h2>
+<h2 id="structuringyourapp">Структурирование вашего приложения</h2>
 
-A Meteor application is a mix of JavaScript that runs inside a client web
-browser, JavaScript that runs on the Meteor server inside a
-[Node.js](http://nodejs.org/) container, and all the supporting HTML fragments,
-CSS rules, and static assets.  Meteor automates the packaging and transmission
-of these different components.  And, it is quite flexible about how you choose
-to structure those components in your file tree.
+Стандартное приложение Meteor это смесь JavaScript запущенный внутри браузера
+клиента, JavaScript на серверной стороне запущен в контейнере
+[Node.js](http://nodejs.org/), как и HTML фрагменты, CSS и статика.
+Meteor автоматизирует упаковку и доставку всех этих разных компонентов.
+И у вас есть достаточно гибкости для расположение все этих частей внутри
+структуры вашего проекта.
 
-The only server asset is JavaScript.  Meteor gathers all your JavaScript
-files, excluding anything under the `client`
-and `public` subdirectories, and loads them into a Node.js
-server instance inside a fiber.  In Meteor, your server code runs in
-a single thread per request, not in the asynchronous callback style
-typical of Node.  We find the linear execution model a better fit for
-the typical server code in a Meteor application.
+Единтсвенная ценность для сервера это JavaScript.  Meteor собирает все JavaScript
+файлы, исключая файлы в директориях `client` и `public`и загружает их в Node.js.
+В Meteor, ваш серверный код обрабатывает каждый запрос в отдельном потоке,
+но е в асинхронной маннере как принято в Node. 
+Мы находим что синхронное исполнение лучше ложится на модель типичного веб-приложения.
 
 There are more assets to consider on the client side.  Meteor
 gathers all JavaScript files in your tree with the exception of
