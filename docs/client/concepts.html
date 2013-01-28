@@ -63,12 +63,11 @@ CSS файлы лучше держать в одном месте: клиент 
 HTML файлы в приложении Meteor обрабатываются иначе чем это принято в 
 серверных фреймворках.  Meteor сканирует все HTML файлы в вашей
 диреткории на предмет трех элементов: `<head>`, `<body>`, и
-`<template>`.  Все заголовки и тела объеденяются в один заголовок и тело
+`<template>`.  Все заголовки и тела собираются в один заголовок и тело
 и передаются на клиента при первой загрузке приложения.
 
 Код в секции template, конвертируется в JavaScript
-функции, доступные в пространстве имен `Template`.  "It's
-a really convenient way to ship HTML templates to the client.  Это
+функции, доступные в пространстве имен `Template`.  Это
 действительно удобный метод доставки шаблонов клиенту.
 Подробности смотри [templates](#templates).
 
@@ -76,31 +75,26 @@ a really convenient way to ship HTML templates to the client.  Это
 `public`, как например в Rails или Django проекте.  Это место для
 изображений, `favicon.ico`, `robots.txt`, и всего остального.
 
-It is best to write your application in such a way that it is
-insensitive to the order in which files are loaded, for example by
-using [Meteor.startup](#meteor_startup), or by moving load order
-sensitive code into Smart Packages, which can explicitly control both
-the load order of their contents and their load order with respect to
-other packages. However sometimes load order dependencies in your
-application are unavoidable. The JavaScript and CSS files in an
-application are loaded according to these rules:
+Лучше выстроить приложение так чтобы порядок загрузки файлов не
+влиял на его работу, к примеру используя [Meteor.startup](#meteor_startup),
+или переместив код в Smart Packages, где вы сможите управлять порядком загрузки пакетов.
+Однако иногда переопределить порядок загрузки зависимостей невозможно.
+JavaScript и CSS файлы в приложении загружаются сообразно своим правилам:
 
-* Files in the `lib` directory at the root of your application are
-  loaded first.
+* Файлы в корневой директории `lib` загружаются первыми.
 
-* Files that match `main.*` are loaded after everything else.
+* Файлы совпадающие с `main.*` загружаются следующими.
 
-* Files in subdirectories are loaded before files in parent
-  directories, so that files in the deepest subdirectory are loaded
-  first (after `lib`), and files in the root directory are loaded last
-  (other than `main.*`).
+* Файлы в поддиректориях загружаются снизу вверх,
+  так файлы в наиболее глубоких директориях загружаются первыми
+  (сразу после `lib`), а файлы в корневых директориях загружаются последними
+  (за исключением `main.*`).
 
-* Within a directory, files are loaded in alphabetical order by
-  filename.
+* Внутри директории файлы загружаются в алфавитном порядке.
 
-These rules stack, so that within `lib`, for example, files are still
-loaded in alphabetical order; and if there are multiple files named
-`main.js`, the ones in subdirectories are loaded earlier.
+Это правила, так например  в директории `lib`, для примера, файлы
+загрузятся в алфавитном порядке; и если есть файлы `main.js`,
+то они загрузятся раньше файлов в поддиректориях.
 
 {{/better_markdown}}
 </template>
