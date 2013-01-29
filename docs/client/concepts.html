@@ -19,7 +19,7 @@
 <template name="structure">
 {{#better_markdown}}
 
-<h2 id="structuringyourapp">Структура вашего приложения</h2>
+<h2 id="structuringyourapp">Структура приложения</h2>
 
 Стандартное приложение Meteor это смесь JavaScript запущенный внутри браузера
 клиента, JavaScript на серверной стороне запущен в контейнере
@@ -102,58 +102,60 @@ JavaScript и CSS файлы в приложении загружаются со
 <template name="data">
 {{#better_markdown}}
 
-<h2 id="dataandsecurity">Data and security</h2>
+<h2 id="dataandsecurity">Информация и безопастность</h2>
 
-Meteor makes writing distributed client code as simple as talking to a
-local database.  It's a clean, simple, and secure approach that obviates
-the need to implement individual RPC endpoints, manually cache data on
-the client to avoid slow roundtrips to the server, and carefully
-orchestrate invalidation messages to every client as data changes.
+Meteor дает возможность писать распределенный клиентский код так же
+просто как-будто вы напрямую соединины с локальной базой данных.  Это просто,
+понятно, безопасно и освобождает вас от реализации RPC, ручного кеширование
+данных на клиенте для компенсации задержек, и позволяет аккуратно доставляет все 
+сообщения всем клиентам при изменении данных.
 
-In Meteor, the client and server share the same database API.  The same
-exact application code &mdash; like validators and computed properties &mdash; can
-often run in both places.  But while code running on the server has
-direct access to the database, code running on the client does *not*.
-This distinction is the basis for Meteor's data security model.
+В Meteor, клиент и сервер используют единый API базы данных. Код
+приложения &mdash; такой как валидаторы и вычисляемые свойства &mdash; могут
+быть использованы как на клиенте так и на сервере.  Но код запущенный на сервер
+имеет прямой доступ к базе данных, а код на клиенте *нет*.
+Это разделение - основы модели безопастности фреймворка.
 
 {{#note}}
-By default, a new Meteor app includes the `autopublish` and `insecure`
-packages, which together mimic the effect of each client having full
-read/write access to the server's database.  These are useful
-prototyping tools, but typically not appropriate for production
-applications.  When you're ready, just remove the packages.
+По умолчанию, новое приложение включает пакеты `autopublish` и `insecure`,
+которые вместе имитируют эффект того что каждый клиент имеет полный доступ
+к базе данных на чтение/запись.  Это полезно в качестве мощного инструмента
+прототипирования, но обычно неприемлимо для реальных приложения.
+При выходе в продакшн просто удалите эти пакеты.
 {{/note}}
 
-Every Meteor client includes an in-memory database cache.  To manage the
-client cache, the server *publishes* sets of JSON documents, and the
-client *subscribes* to those sets.  As documents in a set change, the
-server patches each client's cache.
+Каждый клиент Meteor-а включает в себя кеш базы данных.  Для управления
+клиентским кешем, сервер *publishes* (публикует) набор JSON документов,
+а клиент в свою очеред *subscribes* (подписывается) на эти наборы.
+Как только документы в наборе изменяются, сервер патчит кеш каждого клиента 
+до актуального состояния.
 
-Each document set is defined by a publish function on the server.  The
-publish function runs each time a new client subscribes to a document
-set.  The data in a document set can come from anywhere, but the common
-case is to publish a database query.
+Каждый набор документов объявлен publish функцией на сервере.
+Данная функция запускается каждый раз когда новый клиент подписывается
+на набор документов. Данные в наборе документов могут быть откуда угодно,
+но в основном публикуются данные из базы.
 
-    // server: publish all room documents
+    // server: публикует все документы комнаты
     Meteor.publish("all-rooms", function () {
       return Rooms.find(); // everything
     );
 
-    // server: publish all messages for a given room
+    // server: публикует все сообщения для конкретной комнаты
     Meteor.publish("messages", function (roomId) {
       return Messages.find({room: roomId});
     });
 
-    // server: publish the set of parties the logged-in user can see.
+    // server: публикует список вечеринок которые видит пользователь
     Meteor.publish("parties", function () {
       return Parties.find({$or: [{"public": true},
                                  {invited: this.userId},
                                  {owner: this.userId}]});
     });
 
-Publish functions can provide different results to each client.  In the
-last example, a logged in user can only see `Party` documents that
-are public, that the user owns, or that the user has been invited to.
+Publish функция может отдавать разные результаты каждому клиенту.  
+В послденем примере, залогиненный пользователь может видить только 
+те документы `Party` которые являются публичными, те которыми пользователь владеет,
+или те в которые пользователь приглашен.
 
 Once subscribed, the client uses its cache as a fast local database,
 dramatically simplifying client code.  Reads never require a costly
