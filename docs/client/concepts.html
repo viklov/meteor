@@ -237,47 +237,48 @@ package так же предоставляет визард, который пр
 <template name="reactivity">
 {{#better_markdown}}
 
-<h2 id="reactivity">Reactivity</h2>
+<h2 id="reactivity">Реактивность</h2>
 
-Meteor embraces the concept of [reactive
-programming](http://en.wikipedia.org/wiki/Reactive_programming). This means that
-you can write your code in a simple imperative style, and the result will be
-automatically recalculated whenever data changes that your code depends on.
+Meteor включает в себя концепцию [reactive
+programming](http://en.wikipedia.org/wiki/Reactive_programming). Это означает
+что вы можете свой код в простом импиративном стиле, а результат будет пересчитан
+автоматически при измении данных с которыми связан ваш код.
 
     Meteor.autosubscribe(function () {
       Meteor.subscribe("messages", Session.get("currentRoomId"));
     });
 
-This example (taken from a chat room client) sets up a data
-subscription based on the session variable `currentRoomId`.
-If the value of `Session.get("currentRoomId")` changes for any reason, the
-function will be automatically re-run, setting up a new subscription that
-replaces the old one.
+Этот пример (взятый из чат-клиента) устанавливает
+подписку на данные в переменной сессии `currentRoomId`.
+Если даные в `Session.get("currentRoomId")` изменятся по каким-то причинам,
+функция автоматически перезапустится, установив новую подписку
+заменяя старую.
 
-This automatic recomputation is achieved by a cooperation
-between `Session` and `Meteor.autosubscribe`.
-Methods like `Meteor.autosubscribe` establish a "reactive
-context" inside of which data dependencies are tracked, and they are
-prepared to re-run their function argument as necessary.  Data
-providers like `Session`, on the other hand, make note of
-the context they are called from and what data was requested, and they
-are prepared to send an invalidation signal when the data changes.
 
-This simple pattern (reactive context + reactive data source) has wide
-applicability.  Above, the programmer is saved from writing
-unsubscribe/resubscribe calls and making sure they are called at the
-right time.  In general, Meteor can eliminate whole classes of data
-propagation code which would otherwise clog up your application with
-error-prone logic.
+Этот автоматический пересчет достигается за счет взаимодействия
+между `Session` и `Meteor.autosubscribe`.
+Методы наподобии `Meteor.autosubscribe` устанавливают "reactive
+context" (реактивный контекст) внутри которых отслеживают зависиомсти данных,
+и они при необходимости готовы перезапуститься с другим аргументом.  Данные
+предоставляемые наподобии функции `Session`, с другой стороны, запоминают
+контекст в котором они вызывались и данные которые были запрошены, и они
+готовяться к отправке сигнала, о том что произошли изменения.
 
-These Meteor functions run your code in a reactive context:
+Этот простой паттерн (reactive context + reactive data source) имеет
+широкое применение.  Потому что программист избавлен от необходимости
+отписываться/переподписываться и убеждаться что все вызовы происходят в нужное время.  
+В общем, Meteor может помочь избежать широкого круга ошибок 
+связанных с распростарнением событий и приводящих к ошибкам
+логики приложения.
+
+Эти функции Meteor запускают ваш код в реактивном контексте:
 
 * [Templates](#templates)
 * [`Meteor.render`](#meteor_render) and [`Meteor.renderList`](#meteor_renderlist)
 * [`Meteor.autosubscribe`](#meteor_autosubscribe)
 * [`Meteor.autorun`](#meteor_autorun)
 
-And the reactive data sources that can trigger changes are:
+И реактивные источники данных которые могут оповещать о измениях:
 
 * [`Session`](#session) variables
 * Database queries on [Collections](#find)
@@ -288,9 +289,9 @@ And the reactive data sources that can trigger changes are:
 
 Meteor's
 [implementation](https://github.com/meteor/meteor/blob/master/packages/deps/deps.js)
-of reactivity is short and sweet, about 50 lines of code.  You can hook into it
-yourself to add new reactive contexts or data sources, using the
-[`Meteor.deps`](#meteor_deps) module.
+(реализация) коротка и изящна, составляет около 50 строк кода.  Вы можете перхватить
+ее самостоятельно для добавления нового реактивного контекста или источника данных,
+используя [`Meteor.deps`](#meteor_deps) модуль.
 
 {{/better_markdown}}
 </template>
