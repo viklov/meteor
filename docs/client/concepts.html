@@ -299,15 +299,14 @@ Meteor's
 <template name="livehtml">
 {{#better_markdown}}
 
-<h2 id="livehtml">Live HTML</h2>
+<h2 id="livehtml">:Живой HTML</h2>
 
-HTML templating is central to web applications. With Meteor's live
-page update technology, you can render your HTML _reactively_, meaning
-that it will update automatically to track changes in the data used to
-generate it.
+HTML шаблоны это одна из центральных тем веб-приложения. С технологией
+живого обновления страницы, вы можете рендерить html _reactively_, это 
+означает данные обновляется автоматически при обнаружении изменений в них.
 
-This optional feature works with any HTML templating library, or even
-with HTML you generate manually from Javascript. Here's an example:
+Эта технология работает с любым HTML шабланизатором, или даже
+с HTML который вы нагенерили вручную из JavaScript. Нпример:
 
     var fragment = Meteor.render(
       function () {
@@ -316,53 +315,47 @@ with HTML you generate manually from Javascript. Here's an example:
       });
     document.body.appendChild(fragment);
 
-    Session.set("name", "Bob"); // page updates automatically!
+    Session.set("name", "Bob"); // строница обновиться автоматически!
 
-[`Meteor.render`](#meteor_render) takes a rendering function, that is, a
-function that returns some HTML as a string. It returns an auto-updating
-`DocumentFragment`. When there is a change to data used by the rendering
-function, it is re-run. The DOM nodes in the `DocumentFragment` then
-update themselves in-place, no matter where they were inserted on the
-page. It's completely automatic. [`Meteor.render`](#meteor_render) uses
-[reactive contexts](#reactivity) to discover what data is used by the
-rendering function.
+[`Meteor.render`](#meteor_render) принимает рендер функцию, которая, 
+возвращает HTML в виде строки. Она возвращет автообновляющийся фрагмент
+`DocumentFragment`. Когда данные используемые рендер функцией обновляются
+то она автоматически перезапускается. [`Meteor.render`](#meteor_render) использует
+[reactive contexts](#reactivity) для поиска данных используемых в рендер
+функции.
 
-Most of the time, though, you won't call these functions directly
-&mdash; you'll just use your favorite templating package, such as
-Handlebars or Jade. The `render` and `renderList` functions are intended
-for people that are implementing new templating systems.
+Большуя часть времени вы не будете вызывать эти функции напрямую
+&mdash; вы просто используете свой любый шаблонизатор, такой как
+Handlebars или Jade. `render` и `renderList` функции интерсны для
+разработчиков которые хотят интегрировать свои собственные шаблонизаторы.
 
-Meteor normally batches up any needed updates and executes them only
-when your code isn't running. That way, you can be sure that the DOM
-won't change out from underneath you. Sometimes you want the opposite
-behavior. For example, if you've just inserted a record in the
-database, you might want to force the DOM to update so you can find
-the new elements using a library like jQuery. In that case, call
-[`Meteor.flush`](#meteor_flush) to bring the DOM up to date
-immediately.
+Обычно Метеор производит обновления данных когда ваш код не исполняется. 
+Таким образом,  вы можете быть уверены в том что DOM
+не изменится незаметно для вас(имеется ввиду что сам не добавить элементов в дерево).
+Иногда необходимо обратное.
+К примеру, если вы только что вставили запись в базу, 
+вы захотите запустить принудительное обновление DOM тогда для
+поиска и создания новых элементов вы можете использовать библиотеки на
+подобии jQuery. Так вы можете вызвать [`Meteor.flush`](#meteor_flush)
+дял того чтобы обновить DOM немедлено.
 
-When live-updating DOM elements are taken off the screen, they are automatically
-cleaned up &mdash; their callbacks are torn down, any associated database
-queries are stopped, and they stop updating. For this reason, you never have to
-worry about the [zombie
-templates](http://lostechies.com/derickbailey/2011/09/15/zombies-run-managing-page-transitions-in-backbone-apps/)
-that plague hand-written update logic. To protect your elements from cleanup,
-just make sure that they on-screen before your code returns to the event loop,
-or before any call you make to [`Meteor.flush`](#meteor_flush).
+Когда авто-обновляющиеся DOM исчезают с экрана, они автоматически удаляются &mdash; 
+их колбеки отключаются, любые полсаные в базу данных запросы останавливаются, 
+и они перестают обновляться. Поэтому вам никогда не придется беспокоится о
+[zombie templates](http://lostechies.com/derickbailey/2011/09/15/zombies-run-managing-page-transitions-in-backbone-apps/)
+которые порождает вручную написания логика обновлений. Для защиты своих элементов от уничтожения,
+просто убедитесь что они на экране до того как ваш код вернется в event loop,
+или до любых вызовов [`Meteor.flush`](#meteor_flush).
 
-Another thorny problem in hand-written applications is element
-preservation. Suppose the user is typing text into an `<input>`
-element, and then the area of the page that includes that element is
-redrawn. The user could be in for a bumpy ride, as the focus, the
-cursor position, the partially entered text, and the accented
-character input state will be lost when the `<input>` is recreated.
+Другой интересной проблемой в веб-приложении является сохрание
+элемента. Представим что пользователь пишет текст в  `<input>`
+элемент, и когда участок страницы который включает этот элемент
+перерисовывается. Пользователь например может сместить фокус в приложении
+и частиточно введеный текст пропадет в перерисованном `<input>`.
 
-This is another problem that Meteor solves for you. You can specify
-elements to preserve when templates are re-rendered with the
-[`preserve`](#template_preserve) directive on the template. Meteor will
-preserve these elements even when their enclosing template is
-rerendered, but will still update their children and copy over any
-attribute changes.
+Еще одна проблема которую Метеор решает для вас. Вы можете определить элементы
+для сохранения когда шаблоны пересоздаются с
+[`preserve`](#template_preserve) дерективой в шаблоне.
 
 {{/better_markdown}}
 </template>
@@ -370,7 +363,7 @@ attribute changes.
 <template name="templates">
 {{#better_markdown}}
 
-<h2 id="templates">Templates</h2>
+<h2 id="templates">Шаблоны</h2>
 
 Meteor makes it easy to use your favorite HTML templating language,
 such as Handlebars or Jade, along with Meteor's live page update
