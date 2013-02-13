@@ -2,25 +2,25 @@ Template.api.isClient = {
   id: "meteor_isclient",
   name: "Meteor.isClient",
   locus: "Anywhere",
-  descr: ["Boolean variable.  True if running in client environment."]
+  descr: ["Булева переменная.  Принимает значение True если запущена в клиентском окружении."]
 };
 
 Template.api.isServer = {
   id: "meteor_isserver",
   name: "Meteor.isServer",
   locus: "Anywhere",
-  descr: ["Boolean variable.  True if running in server environment."]
+  descr: ["Булева переменная.  Принимает значение True если запущена в серверном окружении."]
 };
 
 Template.api.startup = {
   id: "meteor_startup",
   name: "Meteor.startup(func)",
   locus: "Anywhere",
-  descr: ["Run code when a client or a server starts."],
+  descr: ["Запускает код когда стартует сервер или клиент"],
   args: [
     {name: "func",
      type: "Function",
-     descr: "A function to run on startup."}
+     descr: "Функция запускаемая на старте."}
   ]
 };
 
@@ -28,28 +28,28 @@ Template.api.absoluteUrl = {
   id: "meteor_absoluteurl",
   name: "Meteor.absoluteUrl([path], [options])",
   locus: "Anywhere",
-  descr: ["Generate an absolute URL pointing to the application. The server "
-          + "reads from the `ROOT_URL` environment variable to determine "
-          + "where it is running. This is taken care of automatically for "
-          + "apps deployed with `meteor deploy`, but must be provided when "
-          + "using `meteor bundle`."],
+  descr: ["Сгенерирует абсолютный URL для приложения. Сервер "
+          + "читает из `ROOT_URL` переменной окружения для определения "
+          + "где он запущен. Переменная ROOT_URL присваивается автоматически "
+          + "если приложение развернуто с `meteor deploy`, но дожна быть указана вручную "
+          + "если используется `meteor bundle`."],
   args: [
     {name: "path",
      type: "String",
-     descr: 'A path to append to the root URL. Do not include a leading "`/`".'
+     descr: 'Путь присоединяемый к корневому URL. Не включает ведущего "`/`".'
     }
   ],
   options: [
     {name: "secure",
      type: "Boolean",
-     descr: "Create an HTTPS URL."
+     descr: "Создает HTTPS URL."
     },
     {name: "replaceLocalhost",
      type: "Boolean",
-     descr: "Replace localhost with 127.0.0.1. Useful for services that don't recognize localhost as a domain name."},
+     descr: "Заменяет localhost 127.0.0.1. Полезна для сервисов которые не могут распознать localhost как доменное имя."},
     {name: "rootUrl",
      type: "String",
-     descr: "Override the default ROOT_URL from the server environment. For example: \"`http://foo.example.com`\""
+     descr: "Перегружает дефолтный ROOT_URL серверного окружения. Для примера: \"`http://foo.example.com`\""
     }
   ]
 };
@@ -58,25 +58,25 @@ Template.api.settings = {
   id: "meteor_settings",
   name: "Meteor.settings",
   locus: "Server",
-  descr: ["`Meteor.settings` contains any deployment-specific options that were " +
-          "provided using the `--settings` option for `meteor run` or `meteor deploy`. " +
-          "If you provide the `--settings` option, `Meteor.settings` will be the " +
-          "JSON object in the file you specify.  Otherwise, `Meteor.settings` will " +
-          "be an empty object."]
+  descr: ["`Meteor.settings` содержить любые специфичне опции " +
+          "переданные `--settings` при запуске `meteor run` или `meteor deploy`. " +
+          "Если вы передаете опцию `--settings`, `Meteor.settings` будет " +
+          "JSON объектом в указаном файле.  В обратном случае, `Meteor.settings` " +
+          "будет пустым объектом"]
 };
 
 Template.api.publish = {
   id: "meteor_publish",
   name: "Meteor.publish(name, func)",
   locus: "Server",
-  descr: ["Publish a record set."],
+  descr: ["Публикует набор записей."],
   args: [
     {name: "name",
      type: "String",
-     descr: "Name of the attribute set.  If `null`, the set has no name, and the record set is automatically sent to all connected clients."},
+     descr: "Имя набора.  Если `null`, у набора нет имени, ивсе записи из такого набора автоматически рассылаются всем подключенным клиентам."},
     {name: "func",
      type: "Function",
-     descr: "Function called on the server each time a client subscribes.  Inside the function, `this` is the publish handler object, described below.  If the client passed arguments to `subscribe`, the function is called with the same arguments."}
+     descr: "Функция вызываемая на сервера всякий раз когда клиент подписывается.  Внутри функции, `this` является объектом обработчика описанным ниже.  Если клиент передает аргументы в `subscribe`, функция вызывается с теми же аргументами."}
   ]
 };
 
@@ -84,19 +84,19 @@ Template.api.subscription_set = {
   id: "publish_set",
   name: "<i>this</i>.set(collection, id, attributes)",
   locus: "Server",
-  descr: ["Call inside the publish function.  Queues a command to set attributes."],
+  descr: ["Вызывается внутрии функции публикации.  Вызывает команду для установки аттрибутов."],
   args: [
     {name: "collection",
      type: "String",
-     descr: "The name of the collection that should be affected."
+     descr: "Имя коллекции."
     },
     {name: "id",
      type: "String",
-     descr: "The ID of the document that should be affected."
+     descr: "ID документа."
     },
     {name: "attributes",
      type: "Object",
-     descr: "Dictionary of attribute keys and their values."
+     descr: "Словарь перечисления аттрибутов и их значений."
     }
   ]
 };
@@ -105,19 +105,19 @@ Template.api.subscription_unset = {
   id: "publish_unset",
   name: "<i>this</i>.unset(collection, id, keys)",
   locus: "Server",
-  descr: ["Call inside the publish function.  Queues a command to unset attributes."],
+  descr: ["Вызывается внутрии функции публикации.  Вызывает команду снятия аттрибутов."],
   args: [
     {name: "collection",
      type: "String",
-     descr: "The name of the collection that should be affected."
+     descr: "Имя коллекции."
     },
     {name: "id",
      type: "String",
-     descr: "The ID of the document that should be affected."
+     descr: "ID документа."
     },
     {name: "keys",
      type: "Array",
-     descr: "Array of attribute keys."
+     descr: "Массив ключей аттрибутов."
     }
   ]
 };
@@ -126,28 +126,28 @@ Template.api.subscription_complete = {
   id: "publish_complete",
   name: "<i>this</i>.complete()",
   locus: "Server",
-  descr: ["Call inside the publish function.  Queues a command to mark this subscription as complete (initial attributes are set)."]
+  descr: ["Вызывается внутри функции подписки.  Вызывает команду для маркировки подписки как готовой (то есть начальные аттрибуты установлены)."]
 };
 
 Template.api.subscription_flush = {
   id: "publish_flush",
   name: "<i>this</i>.flush()",
   locus: "Server",
-  descr: ["Call inside the publish function.  Sends all the pending set, unset, and complete messages to the client."]
+  descr: ["Вызывается внутри функции подписки.  Отсылает все ожидаемые наборы и снимает подписку клиента."]
 };
 
 Template.api.subscription_stop = {
   id: "publish_stop",
   name: "<i>this</i>.stop()",
   locus: "Server",
-  descr: ["Call inside the publish function.  Stops this client's subscription."]
+  descr: ["Вызывается внутри функции подписки. Останавливает подписку клиента."]
 };
 
 Template.api.subscription_onStop = {
   id: "publish_onstop",
   name: "<i>this</i>.onStop(func)",
   locus: "Server",
-  descr: ["Call inside the publish function.  Registers a callback function to run when the subscription is stopped."],
+  descr: ["Вызывается внутри функции подписки.  Регистрирует функцию которая будет вызвана когда подписка будет прекращена."],
   args: [
     {name: "func",
      type: "Function",
@@ -160,7 +160,7 @@ Template.api.subscription_userId = {
   id: "publish_userId",
   name: "<i>this</i>.userId",
   locus: "Server",
-  descr: ["Access inside the publish function. The id of the logged-in user, or `null` if no user is logged in."]
+  descr: ["Доступна внутри функции подписки. id залогиненого пользователя, или `null` если пользователь не логинился."]
 };
 
 
@@ -168,14 +168,14 @@ Template.api.subscribe = {
   id: "meteor_subscribe",
   name: "Meteor.subscribe(name [, arg1, arg2, ... ] [, onComplete])",
   locus: "Client",
-  descr: ["Subscribe to a record set.  Returns a handle that provides a stop() method, which will stop the subscription."],
+  descr: ["Подписаться на набор записей.  Возвращает хендлер который предоставляет метод stop(), который остонавливает подписку."],
   args: [
     {name: "name",
      type: "String",
-     descr: "Name of the subscription.  Matches name of server's publish() call."},
+     descr: "Имя подписки.  Совпадает с именем серверного вызова publish()."},
     {name: "arg1, arg2, ...",
      type: "Any",
-     descr: "Optional arguments passed to publisher function on server."},
+     descr: "Опциональные аргшументы передаются функции подписки на сервер."},
     {name: "onComplete",
      type: "Function",
      descr: "If the last argument is a Function, it is called without arguments when the server marks the subscription as complete."}
@@ -186,11 +186,11 @@ Template.api.autosubscribe = {
   id: "meteor_autosubscribe",
   name: "Meteor.autosubscribe(func)",
   locus: "Client",
-  descr: ["Automatically set up and tear down subscriptions."],
+  descr: ["Автоматически устанавливает и снимает подписки."],
   args: [
     {name: "func",
      type: "Function",
-     descr: "A [`reactive`](#reactivity) function that sets up some subscriptions by calling [`Meteor.subscribe`](#meteor_subscribe). It will automatically be re-run when its dependencies change."}
+     descr: "[`reactive`](#reactivity) реактивная функция которая устанвливает подписки вызовом [`Meteor.subscribe`](#meteor_subscribe). Она автоматически перезапуститься когда ее зависимости изменятся."}
     ]
 };
 

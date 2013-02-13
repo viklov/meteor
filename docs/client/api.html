@@ -3,10 +3,10 @@
 
 <h1 id="api">The Meteor API</h1>
 
-Your Javascript code can run in two environments: the *client* (browser), and
-the *server* (a [Node.js](http://nodejs.org/) container on a server).  For each
-function in this API reference, we'll indicate if the function is available just
-on the client, just on the server, or *Anywhere*.
+Ваш Javascript код может быть запущен в нескольких окружениях: *client* (браузер), и
+*server* (a [Node.js](http://nodejs.org/) контейнер на сервере).  Для каждой функции
+в этом описании API, мы поставили пометки где она доступна
+на клиенте, только на сервере, или *Anywhere* (везде).
 
 <h2 id="core"><span>Meteor Core</span></h2>
 
@@ -14,12 +14,12 @@ on the client, just on the server, or *Anywhere*.
 {{> api_box isServer}}
 {{> api_box startup}}
 
-On a server, the function will run as soon as the server process is
-finished starting. On a client, the function will run as soon as the DOM
-is ready and any `<body>` templates from your `.html` files have been
-put on the screen.
+На сервере, функция запуститься сразу после конца старта серверного процесса.
+На клиенте, функция запуститься как только DOM полностью загрузиться
+и все `<body>` шаблоны из ваших `.html` файлов
+будут выведены на экран.
 
-    // On server startup, if the database is empty, create some initial data.
+    // При старте сервера если БД пустая заполнить значениями
     if (Meteor.isServer) {
       Meteor.startup(function () {
         if (Rooms.find().count() === 0) {
@@ -34,45 +34,44 @@ put on the screen.
 
 <h2 id="publishandsubscribe"><span>Publish and subscribe</span></h2>
 
-These functions control how Meteor servers publish sets of records and
-how clients can subscribe to those sets.
+Эти функции контролируют как Meteor сервер публикует наборы записей и
+как клиенты могут подписаться на эти наборы.
 
 {{> api_box publish}}
 
-To publish records to clients, call `Meteor.publish` on the server with
-two parameters: the name of the record set, and a *publish function*
-that Meteor will call each time a client subscribes to the name.
+Для публикации записей клиентам, вызывается `Meteor.publish` на сервере с 
+двумя параметрами: имя набора записей, и *publish function*
+которую Meteor будет вызывать всякий раз когда клиент подписывается на этот набор.
 
-Publish functions can return a
-[`Collection.Cursor`](#meteor_collection_cursor), in which case Meteor
-will publish that cursor's documents.
+Функция публикации может возвращать
+[`Collection.Cursor`](#meteor_collection_cursor), в таком случае Meteor
+опубликует набор документов из этого курсора.
 
-    // server: publish the rooms collection, minus secret info.
+    // server: публикуем коллекцию комнат, исключая секретную информацию.
     Meteor.publish("rooms", function () {
       return Rooms.find({}, {fields: {secretInfo: 0}});
     });
 
-    // ... and publish secret info for rooms where the logged-in user
-    // is an admin. If the client subscribes to both streams, the records
-    // are merged together into the same documents in the Rooms collection.
+    // ... и публикуем секретную информацию дял комнат где залогиненый пользователь
+    // является админом. Если клиент подписан на оба потока, записи
+    // сливаются вместе в одном документе.
     Meteor.publish("adminSecretInfo", function () {
       return Rooms.find({admin: this.userId}, {fields: {secretInfo: 1}});
     });
 
-Otherwise, the publish function can [`set`](#publish_set) and
-[`unset`](#publish_unset) individual record attributes on a client. These
-methods are provided by `this` in your publish function.
+В противном случае, функция публикации может (установить)[`set`](#publish_set) и
+[`unset`](#publish_unset)(снять) индивидуальные аттрибуты записи на клиенте. Эти
+методы предоставляются `this` внутрии функции публикации.
 
 <!-- TODO discuss complete -->
 
-In particular, if you use [`observe`](#observe) to watch changes to the
-database, be sure to call `this.flush` from inside your observe callbacks.
-Methods that update the database are considered finished when the `observe`
-callbacks return.
+В частности, если вы используете [`observe`](#observe) для отслеживания изменения
+в базе, убедитесь что `this.flush` вызывается из observe callbacks.
+Методы обновляющие базу считаются законченными когда `observe` коллбек возвращается.
 
-Example:
+Пример:
 
-    // server: publish the current size of a collection
+    // server: публикуем актуальный размер коллекции
     Meteor.publish("counts-by-room", function (roomId) {
       var self = this;
       var uuid = Meteor.uuid();
@@ -89,41 +88,41 @@ Example:
           self.set("counts", uuid, {roomId: roomId, count: count});
           self.flush();
         }
-        // don't care about moved or changed
+        // не беспокойтесь о изменениях
       });
 
-      // Observe only returns after the initial added callbacks have
-      // run.  Now mark the subscription as ready.
+      // Наблюдатель возвращается только после того как добавленные коллбеки
+      // запущены.  Теперь пометить подписку как готовую.
       self.complete();
       self.flush();
 
-      // stop observing the cursor when client unsubs
+      // останавливаем наблюдение за курсором когда клиент отписывается
       self.onStop(function () {
         handle.stop();
       });
     });
 
-    // client: declare collection to hold count object
+    // client: декларируем коллекцию дял хранения объекта 'счет'
     Counts = new Meteor.Collection("counts");
 
-    // client: autosubscribe to the count for the current room
+    // client: автоподписка на 'счет' для этой комнаты
     Meteor.autosubscribe(function () {
       Meteor.subscribe("counts-by-room", Session.get("roomId"));
     });
 
-    // client: use the new collection
+    // client: используем новую коллекцию
     console.log("Current room has " + Counts.findOne().count + " messages.");
 
 {{#warning}}
-Meteor will emit a warning message if you call `Meteor.publish` in a
-project that includes the `autopublish` package.  Your publish function
-will still work.
+Метеор возбудит предупреждение если вы вызовете `Meteor.publish` в
+в проекте который включает в себя пакет `autopublish`.  Но функции
+все равно будут работать.
 {{/warning}}
 
 {{> api_box subscription_userId}}
 
-This is constant. However, if the logged-in user changes, the publish
-function is rerun with the new value.
+Это константа. Однако, если злогиненый пользователь изменится, функция
+публикации перезапуститься с новым значением.
 
 {{> api_box subscription_set}}
 {{> api_box subscription_unset}}
@@ -132,59 +131,58 @@ function is rerun with the new value.
 
 {{> api_box subscription_onStop}}
 
-If you call [`observe`](#observe) in your publish handler, this
-is the place to stop the observes.
+Если вы вызываете [`observe`](#observe) хендлере публикации, это
+для остановки наблюдателей.
 
 {{> api_box subscription_stop}}
 
 {{> api_box subscribe}}
 
-When you subscribe to a record set, it tells the server to send records
-to the client.  The client stores these records in local [Minimongo
-collections](#meteor_collection), with the same name as the `collection`
-argument to `set`.  Meteor will queue incoming attributes until you
-declare the [`Meteor.Collection`](#meteor_collection) on the client with
-the matching collection name.
+Когда вы подписываетесь на набор данных, это означает для сервера
+что эти данные надо отпралять клиенту.  Клиент же хранит эти записи в локальной 
+коллекции [Minimongo collections](#meteor_collection), с таким же именем `collection` которое устанавливается
+после установки всех переданных аттрибутов.
+Meteor будет ставить в очеред аттрибуты пока вы не объявите [`Meteor.Collection`](#meteor_collection) 
+на клиенте с совпадающим именем коллекции.
 
-    // okay to subscribe (and possibly receive data) before declaring
-    // the client collection that will hold it.  assume "allplayers"
-    // publishes data from server's "players" collection.
+    // для подписки (и получения данных) до декларации
+    // коллекции на клиенте которая будет содержать эти данные.  подразумевается "allplayers"
+    // публикует данные с серверной коллекции "players".
     Meteor.subscribe("allplayers");
     ...
-    // client queues incoming players records until ...
+    // клиент получает записи игроков пока ...
     ...
     Players = new Meteor.Collection("players");
 
-If more than one subscription sends conflicting values for an attribute
-(same collection name, document ID, and attribute name), then the value
-on the client will be that from the *first* subscription the client
-activated.  (Even if it is not the first to send the duplicated
-attribute.)
+Если более чем одна подписка шлет конфликтующие значения для аттрибута
+(одинаковые имя коллекции, ID документа, и имя аттрибута), тогда значение
+на клиенте будет таким какое было в *первой* активированной подписке на
+клиенте.  (Даже если она не первой прислала дублирующий аттрибут)
 
-If all of the attributes in a document are removed, Meteor
-will remove the (now empty) document.  If you want to publish empty
-documents, just use a placeholder attribute:
+Если все аттрибуты в документе удалены, Meteor
+удалить и сам тепрь уже пустой документ.  Если вы хотите публиковать
+пустые документы, просто используйте аттрибут плейсхолдер:
 
     Clicks.insert({exists: true});
 
 {{> api_box autosubscribe}}
 
-`func` will be run immediately, and while it runs,
-records will be kept of the subscriptions it makes
-(via [`Meteor.subscribe`](#meteor_subscribe)) and the data it uses
-(including calls to [`Session.get`](#session_get)
-and [`collection.find`](#find)).
+`func` будет запущена немедленно, и пока она работает,
+записи будут храниться на подписки это сделано
+(через [`Meteor.subscribe`](#meteor_subscribe)) и данные которые она использует
+(включая вызовы [`Session.get`](#session_get)
+и [`collection.find`](#find)).
 
-Whenever the used data changes, the subscriptions will be cancelled and
-`func` will be re-run to make replacement subscriptions.
-`Meteor.autosubscribe` will automatically stop the old subscription.
-It's not necessary to call `stop` on subscriptions made from inside
+Когда используемые данные изменятся, подписки будут отменены и 
+`func` перезапуститься для их замены на новые.
+`Meteor.autosubscribe` автоматически останавливает старую подписку.
+Не нужно вызывать `stop` на подписки сделанные в рамках
 `Meteor.autosubscribe`.
 
-Example:
+Пример:
 
-    // Subscribe to the chat messages in the current room. Automatically
-    // update the subscription whenever the current room changes.
+    // Подпишемся на сообщения в данной чат комнате. Подписка
+    // автоматически обновится когда комната изменится.
     Meteor.autosubscribe(function () {
       Meteor.subscribe("chat", {room: Session.get("current-room")});
     });
