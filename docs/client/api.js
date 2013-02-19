@@ -175,10 +175,10 @@ Template.api.subscribe = {
      descr: "Имя подписки.  Совпадает с именем серверного вызова publish()."},
     {name: "arg1, arg2, ...",
      type: "Any",
-     descr: "Опциональные аргшументы передаются функции подписки на сервер."},
+     descr: "Опциональные аргументы передаются функции подписки на сервер."},
     {name: "onComplete",
      type: "Function",
-     descr: "If the last argument is a Function, it is called without arguments when the server marks the subscription as complete."}
+     descr: "Если последний аргумент функция, то она вызывается без аргументов когда подписка помечается как готовая."}
   ]
 };
 
@@ -198,11 +198,11 @@ Template.api.methods = {
   id: "meteor_methods",
   name: "Meteor.methods(methods)",
   locus: "Anywhere",
-  descr: ["Defines functions that can be invoked over the network by clients."],
+  descr: ["Определяет функции которые могут быть вызваны клиентом прямо по сети."],
   args: [
     {name: "methods",
      type: "Object",
-     descr: "Dictionary whose keys are method names and values are functions."}
+     descr: "Словарь с ключами в виде имен функций и значениями в виде тел функции."}
   ]
 };
 
@@ -210,18 +210,18 @@ Template.api.method_invocation_userId = {
   id: "method_userId",
   name: "<i>this</i>.userId",
   locus: "Anywhere",
-  descr: ["The id of the user that made this method call, or `null` if no user was logged in."]
+  descr: ["ID пользователя совершившего данный вызов, или `null` если пользователь незалогинен."]
 };
 
 Template.api.method_invocation_setUserId = {
   id: "method_setUserId",
   name: "<i>this</i>.setUserId(userId)",
   locus: "Server",
-  descr: ["Set the logged in user."],
+  descr: ["Устанавливает id пользователя."],
   args: [
     {name: "userId",
      type: "String or null",
-     descr: "The value that should be returned by `userId` on this connection."}
+     descr: "Значение которое должно быть возвращено `userId` на этом соединение."}
   ]
 };
 
@@ -229,14 +229,14 @@ Template.api.method_invocation_unblock = {
   id: "method_unblock",
   name: "<i>this</i>.unblock()",
   locus: "Server",
-  descr: ["Call inside a method invocation.  Allow subsequent method from this client to begin running in a new fiber."]
+  descr: ["Вызывается внутри метода.  Разрешает вызов следующего метода для этого клиента."]
 };
 
 Template.api.method_invocation_isSimulation = {
   id: "method_issimulation",
   name: "<i>this</i>.isSimulation",
   locus: "Anywhere",
-  descr: ["Access inside a method invocation.  Boolean value, true if this invocation is a stub."]
+  descr: ["Доступ внутри метода.  Булево значение, true если вызов является заглушкой."]
 };
 
 Template.api.error = {
