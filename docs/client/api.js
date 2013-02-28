@@ -243,17 +243,17 @@ Template.api.error = {
   id: "meteor_error",
   name: "new Meteor.Error(error, reason, details)",
   locus: "Anywhere",
-  descr: ["This class represents a symbolic error thrown by a method."],
+  descr: ["Этот класс представляет символическую ошибку возбуждаемую методом."],
   args: [
     {name: "error",
      type: "Number",
-     descr: "A numeric error code, likely similar to an HTTP code (eg, 404, 500)."},
+     descr: "Цифровой код HTTP (404, 500 и тд)."},
     {name: "reason",
      type: "String",
-     descr: "Optional.  A short human-readable summary of the error, like 'Not Found'."},
+     descr: "Необязательный.  Короткое описание ошибки, например 'Not Found'."},
     {name: "details",
      type: "String",
-     descr: "Optional.  Additional information about the error, like a textual stack trace."}
+     descr: "Необязательный.  Дополнительная информация о ошибке, например как вывод трейса."}
   ]
 };
 
@@ -261,17 +261,17 @@ Template.api.meteor_call = {
   id: "meteor_call",
   name: "Meteor.call(name, param1, param2, ... [, asyncCallback])",
   locus: "Anywhere",
-  descr: ["Invokes a method passing any number of arguments."],
+  descr: ["Вызывает метод передавая ряд аргументов."],
   args: [
     {name: "name",
      type: "String",
-     descr: "Name of method to invoke"},
+     descr: "Имя метода для вызова"},
     {name: "param1, param2, ...",
      type: "JSON",
-     descr: "Optional method arguments"},
+     descr: "Необязательные аргументы метода"},
     {name: "asyncCallback",
      type: "Function",
-     descr: "Optional callback, which is called asynchronously with the error or result after the method is complete. If not provided, the method runs synchronously if possible (see below)."}
+     descr: "Необязательный коллбек, который вызывается асинхронно с ошибкой или результатом по окончанию работы метода. Если не указан то метод отрабатывает синхронно."}
   ]
 };
 
@@ -279,7 +279,7 @@ Template.api.meteor_apply = {
   id: "meteor_apply",
   name: "Meteor.apply(name, params [, options] [, asyncCallback])",
   locus: "Anywhere",
-  descr: ["Invoke a method passing an array of arguments."],
+  descr: ["Вызывает метод на последовательность значений в массиве."],
   args: [
     {name: "name",
      type: "String",
@@ -289,15 +289,15 @@ Template.api.meteor_apply = {
      descr: "Method arguments"},
     {name: "asyncCallback",
      type: "Function",
-     descr: "Optional callback; same semantics as in [`Meteor.call`](#meteor_call)."}
+     descr: "Необязательный коллбек; семантика как в [`Meteor.call`](#meteor_call)."}
   ],
   options: [
     {name: "wait",
      type: "Boolean",
-     descr: "(Client only) If true, don't send this method until all previous method calls have completed, and don't send any subsequent method calls until this one is completed."},
+     descr: "(Только на клиенте) Если Истина, не посылать этот метод пока другие методы не закончаться, и не посылать вызовы методов на субпоследовательности пока этот метод не отработает до конца."},
     {name: "onResultReceived",
      type: "Function",
-     descr: "(Client only) This callback is invoked with the error or result of the method (just like `asyncCallback`) as soon as the error or result is available. The local cache may not yet reflect the writes performed by the method."}
+     descr: "(Только на клиенте) Это колбек вызывается с ошибкой или результатом (так же как `asyncCallback`) так скоро как результат или ошибка будет доступна."}
   ]
 };
 

@@ -274,71 +274,65 @@ ID пользователя это поле `_id` документа
 
 {{> api_box error}}
 
-If you want to return an error from a method, throw an exception.
-Methods can throw any kind of exception.  But `Meteor.Error` is the only
-kind of error that a server will send to the client.  If a method
-function throws a different exception, then it will be mapped to
-`Meteor.Error(500, "Internal server error")` on the wire.
+Если вы хотите вернуть ошибку из метода, то возбудите исключение.
+Методы могут возбуждать различные исключения.  Но `Meteor.Error` это класс
+исключений которые можно только отправить клиенту.  Если метод
+возбудит другое исключение, тогда оно будет замаплено на 
+`Meteor.Error(500, "Internal server error")`.
 
 {{> api_box meteor_call}}
 
-This is how to invoke a method.  It will run the method on the server.  If a
-stub is available, it will also run the stub on the client.  (See also
-[`Meteor.apply`](#meteor_apply), which is identical to `Meteor.call` except that
-you specify the parameters as an array instead of as separate arguments and you
-can specify a few options controlling how the method is executed.)
+Вызов методов.  Вызывает метод на сервере.  Если
+заглушка доступна, он так же вызовет заглушку на клиенте.  (Смотри так же
+[`Meteor.apply`](#meteor_apply), который идентичен `Meteor.call` заисключением того
+что параметры передаются массивом вместо раздельных аргументов и вы
+можете указать опции контролирующие исполнение метода.)
 
-If you include a callback function as the last argument (which can't be
-an argument to the method, since functions aren't serializable), the
-method will run asynchronously: it will return nothing in particular and
-will not throw an exception.  When the method is complete (which may or
-may not happen before `Meteor.call` returns), the callback will be
-called with two arguments: `error` and `result`. If an error was thrown,
-then `error` will be the exception object.  Otherwise, `error` will be
-undefined and the return value (possibly undefined) will be in `result`.
+Есл вы указали коллбек функцию как последний аргумент (которая не может быть аргументом,
+так как функции не сериализуется), метод запуститься асинхронно: в частности он ничего не вернет и
+не возбудит исключение.  Когда метод завершится (что может произойти или нет
+до возврата `Meteor.call`), коллбек вызывается с двумя аргументами:
+`error` и `result`. Если возбуждена ошибка,
+тогда `error` будет объектом исключением.  Напротив, `error` будет
+undefined и возвращаемое значение будет в `result`.
 
-    // async call
+    // асинхронный вызов
     Meteor.call('foo', 1, 2, function (error, result) { ... } );
 
-If you do not pass a callback on the server, the method invocation will
-block until the method is complete.  It will eventually return the
-return value of the method, or it will throw an exception if the method
-threw an exception. (Possibly mapped to 500 Server Error if the
-exception happened remotely and it was not a `Meteor.Error` exception.)
+Если вы не передаете коллбек на сервер, выполнение метода
+будет блокирующим.  Он так же вернет значение или возбудит ошибку
+если она произойдет. (Скорее всего ошибка будет замапленна на стандартную ошибку 
+сервера 500 если исключение вызвалось на сервер и не является наследником `Meteor.Error`)
 
-    // sync call
+    // синхронный вызов
     var result = Meteor.call('foo', 1, 2);
 
-On the client, if you do not pass a callback and you are not inside a
-stub, `call` will return `undefined`, and you will have no way to get
-the return value of the method. That is because the client doesn't have
-fibers, so there is not actually any way it can block on the remote
-execution of a method.
+На клиенте, если вы не передаете коллбек и вы не внутри функции заглушки
+`call` вернет `undefined`, и у вас не будет возможности контролировать
+возвращаемое методом значение. Это потому что у клиента нет потоков(fibers), 
+так что тут нет возможности что выполнение удаленного кода заблокирует клиент.
 
-Finally, if you are inside a stub on the client and call another
-method, the other method is not executed (no RPC is generated, nothing
-"real" happens).  If that other method has a stub, that stub stands in
-for the method and is executed. The method call's return value is the
-return value of the stub function.  The client has no problem executing
-a stub synchronously, and that is why it's okay for the client to use
-the synchronous `Meteor.call` form from inside a method body, as
-described earlier.
+Наконец, если вы внутри клиентской заглушки и вызываете другой метод,
+то он не исполнится (RPC несгенерируется и ничего не произойдет).
+Если у другого метода есть заглушка, то эта заглушка исполнится.
+Вызов метода вернет значение это будет значение метода заглушки.
+У клиента нет проблем выполнить код синхронно и это нормально использовать 
+синхронно `Meteor.call`, изнутри метода как описывалось ранее.
 
-Meteor tracks the database writes performed by methods, both on the client and
-the server, and does not invoke `asyncCallback` until all of the server's writes
-replace the stub's writes in the local cache. In some cases, there can be a lag
-between the method's return value being available and the writes being visible:
-for example, if another method still outstanding wrote to the same document, the
-local cache may not be up to date until the other method finishes as well. If
-you want to process the method's result as soon as it arrives from the server,
-even if the method's writes are not available yet, you can specify an
-`onResultReceived` callback to [`Meteor.apply`](#meteor_apply).
+Метеор отслеживает записи базы данных осуществляемые методами, как на клиенте так
+и на сервере, и не вызывает `asyncCallback` пока все записи на сервере не синхронизируются
+с локальным кешем клиента.
+В инекоторых случиях, здесь может быть лаг между возвращаемым методом значением
+и моментом когда записи станут видимыми: например если другой метод будет долго писать
+в тот же документ, то локальный кеш не смодет обновиться пока метод не завершится.
+Если вы хотите обрабатывать ответы от сервера так быстро как они поступают вы можете указать
+`onResultReceived` коллбек для [`Meteor.apply`](#meteor_apply).
 
 {{> api_box meteor_apply}}
 
-`Meteor.apply` is just like `Meteor.call`, except that the method arguments are
-passed as an array rather than directly as arguments, and you can specify
-options about how the client executes the method.
+`Meteor.apply` такой же как `Meteor.call`, за исключением того что аргументы
+передаются как массив в отличии от того когда аргументы передаются напрямую,
+и вы можете указать как клиент будет вызывать этот метод.
 
 <h2 id="connections"><span>Server connections</span></h2>
 
