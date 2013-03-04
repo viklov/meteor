@@ -52,7 +52,7 @@
       return Rooms.find({}, {fields: {secretInfo: 0}});
     });
 
-    // ... и публикуем секретную информацию дял комнат где залогиненый пользователь
+    // ... и публикуем секретную информацию для комнат где залогиненый пользователь
     // является админом. Если клиент подписан на оба потока, записи
     // сливаются вместе в одном документе.
     Meteor.publish("adminSecretInfo", function () {
@@ -334,86 +334,78 @@ undefined и возвращаемое значение будет в `result`.
 передаются как массив в отличии от того когда аргументы передаются напрямую,
 и вы можете указать как клиент будет вызывать этот метод.
 
-<h2 id="connections"><span>Server connections</span></h2>
+<h2 id="connections"><span>Серверные соединения</span></h2>
 
-These functions manage and inspect the network connection between the
-Meteor client and server.
+Этот функционал управляет и следит за сетевыми соединениями между
+сервером и клиентами.
 
 {{> api_box status}}
 
-This method returns the status of the connection between the client and
-the server. The return value is an object with the following fields:
+Этот метод возвращает статус соединения между клиентом и сервером.
+Возвращаемое значение объект со следующими полями:
 
 <dl class="objdesc">
 {{#dtdd name="connected" type="Boolean"}}
-  True if currently connected to the server. If false, changes and
-  method invocations will be queued up until the connection is
-  reestablished.
+  Истина если уставнолено соединение с сервером. Если Ложь, то
+  вызовы методов устанавливаются в очередь и ожидают повторного
+  соединения.
 {{/dtdd}}
 
 {{#dtdd name="status" type="String"}}
-  Describes the current reconnection status. The possible
-  values are `connected` (the connection is up and
-  running), `connecting` (disconnected and trying to open a
-  new connection), and `waiting` (failed to connect and
-  waiting to try to reconnect).
+  Описывает текущий статус переподключения.
+  Возможные значения `connected` (соединение установлено),
+  `connecting` (соединение разорвано и пытается восстановить связь),
+  `waiting`(попытки соединения неудачны, ожидание)
 {{/dtdd}}
 
 {{#dtdd name="retryCount" type="Number"}}
-  The number of times the client has tried to reconnect since the
-  connection was lost. 0 when connected.
+  Количество попыток предпринятых с момента обрыва соединения.
 {{/dtdd}}
 
 {{#dtdd name="retryTime" type="Number or undefined"}}
-  The estimated time of the next reconnection attempt. To turn this
-  into an interval until the next reconnection, use
-  `retryTime - (new Date()).getTime()`. This key will
-  be set only when `status` is `waiting`.
+  Время ожидания до следующей попытки соединения.
 {{/dtdd}}
 </dl>
 
-Instead of using callbacks to notify you on changes, this is
-a [reactive](#reactivity) data source. You can use it in a
-[template](#templates) or [invalidation](#meteor_deps)
-context to get realtime updates.
+Вместо использования коллбеков для уведомлений о изменениях,
+это реактивнйы источник данных. Вы можете использовать его в
+шаблонах для получения обновлений.
 
 {{> api_box reconnect}}
 
 {{> api_box connect}}
 
-To call methods on another Meteor application or subscribe to its data
-sets, call `Meteor.connect` with the URL of the application.
-`Meteor.connect` returns an object which provides:
+Для вызова методов на другом сервере Метеор или для подписки на его данные
+ вызовите `Meteor.connect` с URL приложения.
+`Meteor.connect` вернет объект с методами:
 
 * `subscribe` -
-  Subscribe to a record set. See
+  Подписать на набор данных. См.
   [Meteor.subscribe](#meteor_subscribe).
 * `call` -
-  Invoke a method. See [Meteor.call](#meteor_call).
+  Вызвать метод. См. [Meteor.call](#meteor_call).
 * `apply` -
-  Invoke a method with an argument array. See
+  Вызвать метод с массивом аргументов. См
   [Meteor.apply](#meteor_apply).
 * `methods` -
-  Define client-only stubs for methods defined on the remote server. See
+  Объявленнные методы-заглушки на клиенте. См
   [Meteor.methods](#meteor_methods).
 * `status` -
-  Get the current connection status. See
+  Получить текущее состояние соединения
   [Meteor.status](#meteor_status).
 * `reconnect` -
-  See [Meteor.reconnect](#meteor_reconnect).
-* `onReconnect` - Set this to a function to be called as the first step of
-  reconnecting. This function can call methods which will be executed before
-  any other outstanding methods. For example, this can be used to re-establish
-  the appropriate authentication context on the new connection.
+  См [Meteor.reconnect](#meteor_reconnect).
+* `onReconnect` - установите это на функцию которая будет первым шагом переустановки
+   соединения. Например может быть использованно для автоматической аутентификации при
+   переустановке соединения.
 
-By default, clients open a connection to the server from which they're loaded.
-When you call `Meteor.subscribe`, `Meteor.status`, `Meteor.call`, and
-`Meteor.apply`, you are using a connection back to that default
-server.
+По умолчанию, клиенты открывают соединение к серверу откуда они были загружены.
+Когад вы вызываете `Meteor.subscribe`, `Meteor.status`, `Meteor.call`, и
+`Meteor.apply`, то вы используете соединение с дефолтным сервером.
 
 {{#warning}}
-In this release, `Meteor.connect` can only be called on the client.
-Servers can not yet connect to other servers.
+В этом релизе, `Meteor.connect` может быть вызван только на клиенте.
+Сервер пока не может подключаться к другим серверам.
 {{/warning}}
 
 <h2 id="collections"><span>Collections</span></h2>

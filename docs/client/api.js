@@ -305,7 +305,7 @@ Template.api.status = {
   id: "meteor_status",
   name: "Meteor.status()",
   locus: "Client",
-  descr: ["Get the current connection status. A reactive data source."]
+  descr: ["Отдает статус соединения. Это реактивный источник данных."]
 };
 
 Template.api.reconnect = {
@@ -313,19 +313,19 @@ Template.api.reconnect = {
   name: "Meteor.reconnect()",
   locus: "Client",
   descr: [
-    "Force an immediate reconnection attempt if the client is not connected to the server.",
-    "This method does nothing if the client is already connected."]
+    "Принудительно совершает попытку установки соединения.",
+    "Этот метод ничего не делает если клиент уже подключен."]
 };
 
 Template.api.connect = {
   id: "meteor_connect",
   name: "Meteor.connect(url)",
   locus: "Client",
-  descr: ["Connect to the server of a different Meteor application to subscribe to its document sets and invoke its remote methods."],
+  descr: ["Подключиться с сервером с другим Метеор приложением"],
   args: [
     {name: "url",
      type: "String",
-     descr: "The URL of another Meteor application."}
+     descr: "URL другого приложения."}
   ]
 };
 
